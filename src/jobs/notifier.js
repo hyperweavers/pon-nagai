@@ -7,6 +7,8 @@ require('dotenv').config();
 const { sendMessage } = require('../utils/message-utils');
 const { saveTodayRetailPrice } = require('../utils/db-utils');
 
+require('../utils/axios-utils');
+
 const GOLD_RETAIL_PRICE_API_URL = process.env.GOLD_RETAIL_PRICE_API_URL || '';
 
 const GRAMS_PER_SAVARAN = 8;

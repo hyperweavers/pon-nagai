@@ -5,6 +5,8 @@ require('dotenv').config();
 const { sendMessage } = require('../utils/message-utils');
 const { saveTodayMarketPrice } = require('../utils/db-utils');
 
+require('../utils/axios-utils');
+
 const GOLD_MARKET_PRICE_API_URL = process.env.GOLD_MARKET_PRICE_API_URL || '';
 
 const getMarketPosition = async () => {
