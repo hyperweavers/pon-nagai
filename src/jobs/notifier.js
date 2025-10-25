@@ -139,7 +139,6 @@ const getRetailPrice = async () => {
     console.info('Primary API failed. Falling back to backup API...');
 
     try {
-      console.log(GOLD_RETAIL_PRICE_API_BACKUP_URL);
       const response = await client.post(
         GOLD_RETAIL_PRICE_API_BACKUP_URL,
         {},

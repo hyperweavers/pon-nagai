@@ -31,5 +31,5 @@ jobs:
           DB_NAME: ${{ vars.DB_NAME }}
           DB_COLLECTION: ${{ vars.DB_COLLECTION }}
           TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
-          GOLD_RETAIL_PRICE_API_URL: ${{ vars.GOLD_RETAIL_PRICE_API_URL }}
           GOLD_MARKET_PRICE_API_URL: ${{ vars.GOLD_MARKET_PRICE_API_URL }}
+          GOLD_MARKET_PRICE_API_BACKUP_URL: ${{ vars.GOLD_MARKET_PRICE_API_BACKUP_URL }}
