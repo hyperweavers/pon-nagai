@@ -46,7 +46,7 @@ const parsePrimaryApiResponse = (response) => {
           )}`
         );
       } else {
-        console.error(
+        throw new Error(
           `Gold market data not found: ${JSON.stringify(response.data)}`
         );
       }
@@ -65,15 +65,15 @@ const parsePrimaryApiResponse = (response) => {
           )}`
         );
       } else {
-        console.error(
+        throw new Error(
           `Silver market data not found: ${JSON.stringify(response.data)}`
         );
       }
     } else {
-      console.error(`Invalid market data: ${JSON.stringify(response)}`);
+      throw new Error(`Invalid market data: ${JSON.stringify(response)}`);
     }
   } else {
-    console.error(`Invalid response data: ${JSON.stringify(response)}`);
+    throw new Error(`Invalid response data: ${JSON.stringify(response)}`);
   }
 
   return position;
@@ -93,12 +93,14 @@ const parseSecondaryApiResponse = (response) => {
         lastTradedDate: item.NewDataSet.Table.DateTime,
       }));
     } catch (error) {
-      console.error(
+      throw new Error(
         `Unable to parse response data: ${JSON.stringify(response.data)}`
       );
     }
   } else {
-    console.error(`Invalid response/market data: ${JSON.stringify(response)}`);
+    throw new Error(
+      `Invalid response/market data: ${JSON.stringify(response)}`
+    );
   }
 
   return position;
@@ -112,10 +114,12 @@ const getMarketPosition = async () => {
 
     position = parsePrimaryApiResponse(response);
   } catch (error) {
-    console.error(`Error fetching market data: ${JSON.stringify(error)}`);
+    console.error(
+      `Error fetching primary market data: ${JSON.stringify(error)}`
+    );
   }
 
-  if (!position) {
+  if (position.length <= 0) {
     console.info('Primary API failed. Falling back to backup API...');
 
     try {
@@ -123,7 +127,9 @@ const getMarketPosition = async () => {
 
       position = parseSecondaryApiResponse(response);
     } catch (error) {
-      console.error(`Error fetching market data: ${JSON.stringify(error)}`);
+      console.error(
+        `Error fetching secondary market data: ${JSON.stringify(error)}`
+      );
     }
   }
 

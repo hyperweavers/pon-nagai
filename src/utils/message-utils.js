@@ -39,12 +39,10 @@ const composeNotificationMessage = (metalPrices) => {
   metalPrices.forEach((item) => {
     const { metal, purity, price } = item;
 
-    if (metal.toLowerCase() === 'gold') {
-      message += '🟡 ';
-    } else if (metal.toLowerCase() === 'silver') {
-      message += `${NEW_LINE}⚪ `;
+    if (metal.toLowerCase() === 'silver') {
+      message += `${NEW_LINE}`;
     } else if (metal.toLowerCase() === 'platinum') {
-      message += `${NEW_LINE}🔘 `;
+      message += `${NEW_LINE}`;
     }
 
     message += `*${metal}* `;
@@ -57,7 +55,7 @@ const composeNotificationMessage = (metalPrices) => {
   });
 
   // Footer
-  message += `${NEW_LINE}⚠️ *Disclaimer*: Prices are indicative and may vary slightly across jewellers and locations.`;
+  message += `${NEW_LINE}*Disclaimer*: Prices are indicative and may vary slightly across jewellers and locations.`;
 
   return message;
 };
@@ -74,10 +72,8 @@ const composePredictionMessage = (marketPosition) => {
     marketPosition.forEach((item) => {
       const { metal, change, ..._ } = item;
 
-      if (metal.toLowerCase() === 'gold') {
-        message += '🟡 ';
-      } else if (metal.toLowerCase() === 'silver') {
-        message += `${NEW_LINE}⚪ `;
+      if (metal.toLowerCase() === 'silver') {
+        message += `${NEW_LINE}`;
       }
 
       message += `*${metal}* - `;
@@ -92,7 +88,7 @@ const composePredictionMessage = (marketPosition) => {
   }
 
   // Footer
-  message += `${NEW_LINE}${NEW_LINE}⚠️ *Disclaimer*: Rates are estimates based on market trends and may change anytime.`;
+  message += `${NEW_LINE}${NEW_LINE}*Disclaimer*: Changes are estimated based on market trends and may inaccurate and change anytime.`;
 
   return message;
 };

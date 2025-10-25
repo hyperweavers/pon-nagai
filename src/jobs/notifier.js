@@ -4,7 +4,10 @@ const { wrapper } = require('axios-cookiejar-support');
 
 require('dotenv').config();
 
-const { composeNotificationMessage, sendMessage } = require('../utils/message-utils');
+const {
+  composeNotificationMessage,
+  sendMessage,
+} = require('../utils/message-utils');
 const { saveTodayRetailPrice } = require('../utils/db-utils');
 
 require('../utils/axios-utils');
@@ -22,7 +25,7 @@ const parsePrimaryApiResponse = (response) => {
     try {
       responseJson = JSON.parse(response.data.payload);
     } catch (error) {
-      console.error(
+      throw new Error(
         `Error parsing price data.\nData: ${
           response.data.payload
         }\nError: ${JSON.stringify(error)}`
@@ -38,7 +41,11 @@ const parsePrimaryApiResponse = (response) => {
             : data.purityName,
         price: data.rate,
       }));
+    } else {
+      throw new Error('Metal rate list is empty.');
     }
+  } else {
+    throw new Error(`Invalid response: ${JSON.stringify(response.data)}`);
   }
 
   return price;
@@ -54,6 +61,8 @@ const parseSecondaryApiResponse = (response) => {
         purity: '24KT',
         price: response.data.Data.R24KT,
       });
+    } else {
+      console.warn('24KT gold price is not found.');
     }
 
     if (response.data.Data.R22KT) {
@@ -62,6 +71,8 @@ const parseSecondaryApiResponse = (response) => {
         purity: '22KT',
         price: response.data.Data.R22KT,
       });
+    } else {
+      console.warn('22KT gold price is not found.');
     }
 
     if (response.data.Data.R18KT) {
@@ -70,6 +81,8 @@ const parseSecondaryApiResponse = (response) => {
         purity: '18KT',
         price: response.data.Data.R18KT,
       });
+    } else {
+      console.warn('18KT gold price is not found.');
     }
 
     if (response.data.Data.RS925) {
@@ -78,6 +91,8 @@ const parseSecondaryApiResponse = (response) => {
         purity: '92.50',
         price: response.data.Data.RS925,
       });
+    } else {
+      console.warn('Silver price is not found.');
     }
 
     if (response.data.Data.PT950) {
@@ -86,7 +101,11 @@ const parseSecondaryApiResponse = (response) => {
         purity: '95.00',
         price: response.data.Data.PT950,
       });
+    } else {
+      console.warn('Platinum price is not found.');
     }
+  } else {
+    throw new Error(`Invalid response: ${JSON.stringify(response.data)}`);
   }
 
   return price;
@@ -111,10 +130,12 @@ const getRetailPrice = async () => {
 
     price = parsePrimaryApiResponse(response);
   } catch (error) {
-    console.error(`Error fetching retail data: ${JSON.stringify(error)}`);
+    console.error(
+      `Error fetching primary retail data: ${JSON.stringify(error)}`
+    );
   }
 
-  if (!price) {
+  if (price.length <= 0) {
     console.info('Primary API failed. Falling back to backup API...');
 
     try {
@@ -130,7 +151,9 @@ const getRetailPrice = async () => {
 
       price = parseSecondaryApiResponse(response);
     } catch (error) {
-      console.error(`Error fetching retail data: ${JSON.stringify(error)}`);
+      console.error(
+        `Error fetching secondary retail data: ${JSON.stringify(error)}`
+      );
     }
   }
 
