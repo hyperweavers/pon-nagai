@@ -4,7 +4,10 @@ const { wrapper } = require('axios-cookiejar-support');
 
 require('dotenv').config();
 
-const { sendMessage } = require('../utils/message-utils');
+const {
+  composeNotificationMessage,
+  sendMessage,
+} = require('../utils/message-utils');
 const { saveTodayRetailPrice } = require('../utils/db-utils');
 
 require('../utils/axios-utils');
@@ -13,52 +16,96 @@ const GOLD_RETAIL_PRICE_API_URL = process.env.GOLD_RETAIL_PRICE_API_URL || '';
 const GOLD_RETAIL_PRICE_API_BACKUP_URL =
   process.env.GOLD_RETAIL_PRICE_API_BACKUP_URL || '';
 
-const GRAMS_PER_SAVARAN = 8;
-const NEW_LINE = '%0A';
-
 const parsePrimaryApiResponse = (response) => {
-  let price = null;
+  let price = [];
 
-  if (response.data && response.data['22kt']) {
-    price = response.data['22kt'].match(/[\d]+/g).slice(0, -1).join('');
+  if (response.data?.status === 'OK' && response.data?.payload) {
+    let responseJson = '';
 
-    console.info(`Today's gold retail price: Rs.${price}/gram`);
+    try {
+      responseJson = JSON.parse(response.data.payload);
+    } catch (error) {
+      throw new Error(
+        `Error parsing price data.\nData: ${
+          response.data.payload
+        }\nError: ${JSON.stringify(error)}`
+      );
+    }
+
+    if (responseJson && responseJson?.payload?.metalRateList?.length > 0) {
+      price = responseJson.payload.metalRateList.map((data) => ({
+        metal: data.metalTypeName,
+        purity:
+          data.metalTypeName.toLowerCase() === 'platinum'
+            ? '95.00'
+            : data.purityName,
+        price: data.rate,
+      }));
+    } else {
+      throw new Error('Metal rate list is empty.');
+    }
   } else {
-    console.error(`Invalid response data: ${JSON.stringify(response)}`);
+    throw new Error(`Invalid response: ${JSON.stringify(response.data)}`);
   }
 
   return price;
 };
 
 const parseSecondaryApiResponse = (response) => {
-  let price = null;
+  let price = [];
 
-  if (response.data) {
-    const stateWiseGoldPriceList = response.data.data?.getregionalgoldrates;
-
-    if (
-      stateWiseGoldPriceList &&
-      Array.isArray(stateWiseGoldPriceList) &&
-      stateWiseGoldPriceList.length > 0
-    ) {
-      const chennaiPrice = stateWiseGoldPriceList.find(
-        (item) => item.State?.toLowerCase()?.replace(/\s/g, '') === 'tamilnadu'
-      );
-
-      if (chennaiPrice) {
-        price = chennaiPrice.Rate;
-
-        console.info(`Today's gold retail price: Rs.${price}/gram`);
-      } else {
-        console.error(
-          `TN data not found: ${JSON.stringify(stateWiseGoldPriceList)}`
-        );
-      }
+  if (response.data?.Success === true && response.data?.Data) {
+    if (response.data.Data.R24KT) {
+      price.push({
+        metal: 'Gold',
+        purity: '24KT',
+        price: response.data.Data.R24KT,
+      });
     } else {
-      console.error(`Invalid data format: ${JSON.stringify(response)}`);
+      console.warn('24KT gold price is not found.');
+    }
+
+    if (response.data.Data.R22KT) {
+      price.push({
+        metal: 'Gold',
+        purity: '22KT',
+        price: response.data.Data.R22KT,
+      });
+    } else {
+      console.warn('22KT gold price is not found.');
+    }
+
+    if (response.data.Data.R18KT) {
+      price.push({
+        metal: 'Gold',
+        purity: '18KT',
+        price: response.data.Data.R18KT,
+      });
+    } else {
+      console.warn('18KT gold price is not found.');
+    }
+
+    if (response.data.Data.RS925) {
+      price.push({
+        metal: 'Silver',
+        purity: '92.50',
+        price: response.data.Data.RS925,
+      });
+    } else {
+      console.warn('Silver price is not found.');
+    }
+
+    if (response.data.Data.PT950) {
+      price.push({
+        metal: 'Platinum',
+        purity: '95.00',
+        price: response.data.Data.PT950,
+      });
+    } else {
+      console.warn('Platinum price is not found.');
     }
   } else {
-    console.error(`Invalid response data: ${JSON.stringify(response)}`);
+    throw new Error(`Invalid response: ${JSON.stringify(response.data)}`);
   }
 
   return price;
@@ -68,25 +115,45 @@ const getRetailPrice = async () => {
   const jar = new CookieJar();
   const client = wrapper(axios.create({ jar }));
 
-  let price = null;
+  let price = [];
 
   try {
-    const response = await client.get(GOLD_RETAIL_PRICE_API_URL);
+    const response = await client.post(
+      GOLD_RETAIL_PRICE_API_URL,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     price = parsePrimaryApiResponse(response);
   } catch (error) {
-    console.error(`Error fetching retail data: ${JSON.stringify(error)}`);
+    console.error(
+      `Error fetching primary retail data: ${JSON.stringify(error)}`
+    );
   }
 
-  if (!price) {
+  if (price.length <= 0) {
     console.info('Primary API failed. Falling back to backup API...');
 
     try {
-      const response = await client.get(GOLD_RETAIL_PRICE_API_BACKUP_URL);
+      const response = await client.post(
+        GOLD_RETAIL_PRICE_API_BACKUP_URL,
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       price = parseSecondaryApiResponse(response);
     } catch (error) {
-      console.error(`Error fetching retail data: ${JSON.stringify(error)}`);
+      console.error(
+        `Error fetching secondary retail data: ${JSON.stringify(error)}`
+      );
     }
   }
 
@@ -96,13 +163,9 @@ const getRetailPrice = async () => {
 const init = async () => {
   const price = await getRetailPrice();
 
-  if (price) {
+  if (price?.length > 0) {
     const isSaved = await saveTodayRetailPrice(price);
-    const isSent = await sendMessage(
-      `Today's 22K 916 Gold Price:${NEW_LINE}*Rs.${price}/Gram*${NEW_LINE}*Rs.${
-        price * GRAMS_PER_SAVARAN
-      }/Savaran*`
-    );
+    const isSent = await sendMessage(composeNotificationMessage(price));
 
     if (isSaved) {
       console.info('Message saved successfully!');
