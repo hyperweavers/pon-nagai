@@ -9,6 +9,7 @@ const {
   sendMessage,
 } = require('../utils/message-utils');
 const { saveTodayRetailPrice } = require('../utils/db-utils');
+const { convertToIST, getMeridiem } = require('../utils/date-utils');
 
 require('../utils/axios-utils');
 
@@ -164,7 +165,10 @@ const init = async () => {
   const price = await getRetailPrice();
 
   if (price?.length > 0) {
-    const isSaved = await saveTodayRetailPrice(price);
+    const isSaved = await saveTodayRetailPrice({
+      session: getMeridiem(convertToIST(new Date())),
+      price,
+    });
     const isSent = await sendMessage(composeNotificationMessage(price));
 
     if (isSaved) {

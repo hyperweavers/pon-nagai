@@ -2,7 +2,7 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 
 require('dotenv').config();
 
-const { formatDateForDatabase } = require('../utils/date-utils');
+const { convertToIST, formatDateForDatabase } = require('../utils/date-utils');
 
 const DB_URL = process.env.DB_URL || '';
 const DB_NAME = process.env.DB_NAME || '';
@@ -17,7 +17,7 @@ const saveTodayRetailPrice = async (price) => {
     },
   });
 
-  const date = formatDateForDatabase(new Date());
+  const date = formatDateForDatabase(convertToIST(new Date()));
 
   let result;
 
@@ -26,10 +26,18 @@ const saveTodayRetailPrice = async (price) => {
 
     const db = client.db(DB_NAME);
 
-    result = await db.collection(DB_COLLECTION).insertOne({
-      date,
-      retailPrice: price,
-    });
+    result = await db.collection(DB_COLLECTION).updateOne(
+      {
+        date,
+      },
+      {
+        $addToSet: { retailPrice: price },
+        $setOnInsert: {
+          date,
+        },
+      },
+      { upsert: true }
+    );
   } catch (error) {
     console.error(`Error querying retail price: ${JSON.stringify(error)}`);
   } finally {
@@ -48,7 +56,7 @@ const saveTodayMarketPrice = async (price) => {
     },
   });
 
-  const date = formatDateForDatabase(new Date());
+  const date = formatDateForDatabase(convertToIST(new Date()));
 
   let result;
 
