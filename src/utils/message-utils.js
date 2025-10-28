@@ -62,7 +62,7 @@ const composeNotificationMessage = (metalPrices, comparisonPrices) => {
 
       const change = price - previousPrice;
       if (change) {
-        message += ` (${change.toLocaleString('en-IN')} ${
+        message += ` (₹${change.toLocaleString('en-IN')} ${
           change > 0 ? '🔼' : '🔽'
         })`;
       }
