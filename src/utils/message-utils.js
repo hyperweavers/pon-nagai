@@ -49,7 +49,13 @@ const composeNotificationMessage = (metalPrices, comparisonPrices) => {
       message += `*${metal}* `;
 
       if (metal.toLowerCase() === 'gold') {
-        message += `_(${purity})_ `;
+        message += `_(${purity}`;
+
+        if (purity.toLowerCase() === '22kt') {
+          message += ' - 916';
+        }
+
+        message += ')_ ';
       }
 
       message += `- *₹${price.toLocaleString('en-IN')}*`;
