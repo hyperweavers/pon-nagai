@@ -9,32 +9,60 @@ const MESSAGE_FORMAT = 'Markdown';
 
 const NEW_LINE = '%0A';
 
-const composeNotificationMessage = (metalPrices) => {
+const composeNotificationMessage = (metalPrices, comparisonPrices) => {
   if (!Array.isArray(metalPrices) || metalPrices.length === 0) {
     return '';
+  }
+
+  let comparisonPriceMap;
+
+  if (comparisonPrices) {
+    comparisonPriceMap = Object.fromEntries(
+      comparisonPrices.map((item) => [
+        `${item.metal}-${item.purity}`,
+        item.price,
+      ])
+    );
   }
 
   // Header
   let message = `*Today's Price/Gram:* ${NEW_LINE}${NEW_LINE}`;
 
   // Table-like body
-  metalPrices.forEach((item) => {
-    const { metal, purity, price } = item;
+  metalPrices
+    .map((mp) => ({
+      ...mp,
+      previousPrice:
+        comparisonPriceMap && Object.keys(comparisonPriceMap).length > 0
+          ? comparisonPriceMap[`${mp.metal}-${mp.purity}`] ?? null
+          : null,
+    }))
+    .forEach((item) => {
+      const { metal, purity, price, previousPrice } = item;
 
-    if (metal.toLowerCase() === 'silver') {
+      if (metal.toLowerCase() === 'silver') {
+        message += `${NEW_LINE}`;
+      } else if (metal.toLowerCase() === 'platinum') {
+        message += `${NEW_LINE}`;
+      }
+
+      message += `*${metal}* `;
+
+      if (metal.toLowerCase() === 'gold') {
+        message += `_(${purity})_ `;
+      }
+
+      message += `- *₹${price.toLocaleString('en-IN')}*`;
+
+      const change = price - previousPrice;
+      if (change) {
+        message += ` (${change.toLocaleString('en-IN')} ${
+          change > 0 ? '🔼' : '🔽'
+        })`;
+      }
+
       message += `${NEW_LINE}`;
-    } else if (metal.toLowerCase() === 'platinum') {
-      message += `${NEW_LINE}`;
-    }
-
-    message += `*${metal}* `;
-
-    if (metal.toLowerCase() === 'gold') {
-      message += `_(${purity})_ `;
-    }
-
-    message += `- *₹${price.toLocaleString('en-IN')}*${NEW_LINE}`;
-  });
+    });
 
   // Footer
   message += `${NEW_LINE}*Disclaimer*: Prices are indicative and may vary slightly across jewellers and locations.`;

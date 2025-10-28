@@ -14,10 +14,18 @@ const getMeridiem = (date) => {
     .slice(-2);
 };
 
+const getYesterday = (today) => {
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  return yesterday;
+}
+
 const formatDateForDatabase = (date) => date.toISOString().split('T')[0];
 
 module.exports = {
   convertToIST,
   formatDateForDatabase,
   getMeridiem,
+  getYesterday,
 };

@@ -8,8 +8,12 @@ const {
   composeNotificationMessage,
   sendMessage,
 } = require('../utils/message-utils');
-const { saveTodayRetailPrice } = require('../utils/db-utils');
-const { convertToIST, getMeridiem } = require('../utils/date-utils');
+const { getPriceByDate, saveTodayRetailPrice } = require('../utils/db-utils');
+const {
+  convertToIST,
+  getMeridiem,
+  getYesterday,
+} = require('../utils/date-utils');
 
 require('../utils/axios-utils');
 
@@ -165,11 +169,30 @@ const init = async () => {
   const price = await getRetailPrice();
 
   if (price?.length > 0) {
+    let previousPrice = await getPriceByDate();
+    if (!previousPrice) {
+      previousPrice = await getPriceByDate(
+        getYesterday(convertToIST(new Date()))
+      );
+    }
+
     const isSaved = await saveTodayRetailPrice({
       session: getMeridiem(convertToIST(new Date())),
       price,
     });
-    const isSent = await sendMessage(composeNotificationMessage(price));
+
+    let comparisonPrice;
+
+    if (previousPrice && previousPrice.retailPrice.length > 0) {
+      comparisonPrice =
+        previousPrice.retailPrice.length === 1
+          ? previousPrice.retailPrice[0].price
+          : previousPrice.retailPrice.find((price) => price.session === 'PM')?.price;
+    }
+
+    const isSent = await sendMessage(
+      composeNotificationMessage(price, comparisonPrice)
+    );
 
     if (isSaved) {
       console.info('Message saved successfully!');

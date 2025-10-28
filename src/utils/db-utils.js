@@ -8,6 +8,36 @@ const DB_URL = process.env.DB_URL || '';
 const DB_NAME = process.env.DB_NAME || '';
 const DB_COLLECTION = process.env.DB_COLLECTION || '';
 
+const getPriceByDate = async (date) => {
+  const client = new MongoClient(DB_URL, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    },
+  });
+
+  const dbDate = formatDateForDatabase(date || convertToIST(new Date()));
+
+  let result = null;
+
+  try {
+    await client.connect();
+
+    const db = client.db(DB_NAME);
+
+    result = await db.collection(DB_COLLECTION).findOne({
+      date: dbDate,
+    });
+  } catch (error) {
+    console.error(`Error querying retail price: ${JSON.stringify(error)}`);
+  } finally {
+    await client.close();
+  }
+
+  return result;
+};
+
 const saveTodayRetailPrice = async (price) => {
   const client = new MongoClient(DB_URL, {
     serverApi: {
@@ -83,6 +113,7 @@ const saveTodayMarketPrice = async (price) => {
 };
 
 module.exports = {
+  getPriceByDate,
   saveTodayRetailPrice,
   saveTodayMarketPrice,
 };
