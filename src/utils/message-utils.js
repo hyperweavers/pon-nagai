@@ -9,24 +9,6 @@ const MESSAGE_FORMAT = 'Markdown';
 
 const NEW_LINE = '%0A';
 
-const sendMessage = async (message) => {
-  let isSuccess = false;
-
-  if (typeof message === 'string' && message.length > 0) {
-    const response = await axios.post(
-      `https://api.telegram.org/bot${TELEGRAM_API_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&parse_mode=${MESSAGE_FORMAT}&text=${message}`
-    );
-
-    if (response.status === 200) {
-      isSuccess = true;
-    }
-  } else {
-    console.error('Message is empty!');
-  }
-
-  return isSuccess;
-};
-
 const composeNotificationMessage = (metalPrices) => {
   if (!Array.isArray(metalPrices) || metalPrices.length === 0) {
     return '';
@@ -81,7 +63,7 @@ const composePredictionMessage = (marketPosition) => {
       message +=
         change.toLocaleString('en-IN') === '0'.toLocaleString('en-IN')
           ? 'No Change'
-          : `*${Math.abs(change)}%* ${change > 0 ? '📈' : '📉'}`;
+          : `*${Math.abs(change)}%* ${change > 0 ? '🔼' : '🔽'}`;
     });
   } else {
     message += 'No change expected in gold and silver prices.';
@@ -91,6 +73,24 @@ const composePredictionMessage = (marketPosition) => {
   message += `${NEW_LINE}${NEW_LINE}*Disclaimer*: Changes are estimated based on market trends and may inaccurate and change anytime.`;
 
   return message;
+};
+
+const sendMessage = async (message) => {
+  let isSuccess = false;
+
+  if (typeof message === 'string' && message.length > 0) {
+    const response = await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_API_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&parse_mode=${MESSAGE_FORMAT}&text=${message}`
+    );
+
+    if (response.status === 200) {
+      isSuccess = true;
+    }
+  } else {
+    console.error('Message is empty!');
+  }
+
+  return isSuccess;
 };
 
 module.exports = {
