@@ -2,11 +2,41 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 
 require('dotenv').config();
 
-const { formatDateForDatabase } = require('../utils/date-utils');
+const { convertToIST, formatDateForDatabase } = require('../utils/date-utils');
 
 const DB_URL = process.env.DB_URL || '';
 const DB_NAME = process.env.DB_NAME || '';
 const DB_COLLECTION = process.env.DB_COLLECTION || '';
+
+const getPriceByDate = async (date) => {
+  const client = new MongoClient(DB_URL, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    },
+  });
+
+  const dbDate = formatDateForDatabase(date || convertToIST(new Date()));
+
+  let result = null;
+
+  try {
+    await client.connect();
+
+    const db = client.db(DB_NAME);
+
+    result = await db.collection(DB_COLLECTION).findOne({
+      date: dbDate,
+    });
+  } catch (error) {
+    console.error(`Error querying retail price: ${JSON.stringify(error)}`);
+  } finally {
+    await client.close();
+  }
+
+  return result;
+};
 
 const saveTodayRetailPrice = async (price) => {
   const client = new MongoClient(DB_URL, {
@@ -17,7 +47,7 @@ const saveTodayRetailPrice = async (price) => {
     },
   });
 
-  const date = formatDateForDatabase(new Date());
+  const date = formatDateForDatabase(convertToIST(new Date()));
 
   let result;
 
@@ -26,10 +56,18 @@ const saveTodayRetailPrice = async (price) => {
 
     const db = client.db(DB_NAME);
 
-    result = await db.collection(DB_COLLECTION).insertOne({
-      date,
-      retailPrice: price,
-    });
+    result = await db.collection(DB_COLLECTION).updateOne(
+      {
+        date,
+      },
+      {
+        $addToSet: { retailPrice: price },
+        $setOnInsert: {
+          date,
+        },
+      },
+      { upsert: true }
+    );
   } catch (error) {
     console.error(`Error querying retail price: ${JSON.stringify(error)}`);
   } finally {
@@ -48,7 +86,7 @@ const saveTodayMarketPrice = async (price) => {
     },
   });
 
-  const date = formatDateForDatabase(new Date());
+  const date = formatDateForDatabase(convertToIST(new Date()));
 
   let result;
 
@@ -75,6 +113,7 @@ const saveTodayMarketPrice = async (price) => {
 };
 
 module.exports = {
+  getPriceByDate,
   saveTodayRetailPrice,
   saveTodayMarketPrice,
 };

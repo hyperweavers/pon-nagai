@@ -9,53 +9,99 @@ const MESSAGE_FORMAT = 'Markdown';
 
 const NEW_LINE = '%0A';
 
-const sendMessage = async (message) => {
-  let isSuccess = false;
+const GRAMS_PER_SAVARAN = 8;
+const GRAMS_PER_KG = 1000;
 
-  if (typeof message === 'string' && message.length > 0) {
-    const response = await axios.post(
-      `https://api.telegram.org/bot${TELEGRAM_API_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&parse_mode=${MESSAGE_FORMAT}&text=${message}`
-    );
-
-    if (response.status === 200) {
-      isSuccess = true;
-    }
-  } else {
-    console.error('Message is empty!');
-  }
-
-  return isSuccess;
-};
-
-const composeNotificationMessage = (metalPrices) => {
+const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
   if (!Array.isArray(metalPrices) || metalPrices.length === 0) {
     return '';
   }
 
+  let comparisonPriceMap;
+
+  if (comparisonPrices) {
+    comparisonPriceMap = Object.fromEntries(
+      comparisonPrices.map((item) => [
+        `${item.metal}-${item.purity}`,
+        item.price,
+      ])
+    );
+  }
+
+  const messageBody = {
+    gold: [],
+    silver: [],
+    platinum: [],
+  };
+
   // Header
-  let message = `*Today's Price/Gram:* ${NEW_LINE}${NEW_LINE}`;
+  const sessionText =
+    session === 'AM' ? ' Morning' : session === 'PM' ? ' Evening' : '';
+  let message = `*Today's${sessionText} Price:* ${NEW_LINE}${NEW_LINE}`;
 
-  // Table-like body
-  metalPrices.forEach((item) => {
-    const { metal, purity, price } = item;
+  // Body
+  metalPrices
+    .map((mp) => ({
+      ...mp,
+      previousPrice:
+        comparisonPriceMap && Object.keys(comparisonPriceMap).length > 0
+          ? comparisonPriceMap[`${mp.metal}-${mp.purity}`] ?? null
+          : null,
+    }))
+    .forEach((item) => {
+      const { metal, purity, price, previousPrice } = item;
 
-    if (metal.toLowerCase() === 'silver') {
-      message += `${NEW_LINE}`;
-    } else if (metal.toLowerCase() === 'platinum') {
-      message += `${NEW_LINE}`;
-    }
+      const diff = price - previousPrice;
+      const arrow = diff > 0 ? '⬆️' : '⬇️';
+      const change =
+        diff !== 0
+          ? ` (${arrow} ₹${Math.abs(diff).toLocaleString('en-IN')})`
+          : '';
+      const priceGram = `₹${price.toLocaleString('en-IN')}`;
 
-    message += `*${metal}* `;
+      // Price per gram and savaran (8g)
+      if (metal.toLowerCase() === 'gold') {
+        const priceSavaran = `₹${(price * GRAMS_PER_SAVARAN).toLocaleString(
+          'en-IN'
+        )}`;
+        const previousPriceSavaran = previousPrice * GRAMS_PER_SAVARAN;
+        const savaranDiff = price * GRAMS_PER_SAVARAN - previousPriceSavaran;
+        const savaranChange =
+          savaranDiff !== 0
+            ? ` (${arrow} ₹${Math.abs(savaranDiff).toLocaleString('en-IN')})`
+            : '';
 
-    if (metal.toLowerCase() === 'gold') {
-      message += `_(${purity})_ `;
-    }
+        let purityText = purity;
+        if (purity.toLowerCase() === '22kt') {
+          purityText += ' - 916';
+        }
 
-    message += `- *₹${price.toLocaleString('en-IN')}*${NEW_LINE}`;
-  });
+        messageBody.gold.push(
+          `*${metal} (${purityText}):*${NEW_LINE}1 Gram - *${priceGram}*${change}${NEW_LINE}1 Savaran - *${priceSavaran}*${savaranChange}${NEW_LINE}${NEW_LINE}`
+        );
+      } else if (metal.toLowerCase() === 'silver') {
+        const priceKg = `₹${(price * GRAMS_PER_KG).toLocaleString('en-IN')}`;
+        const previousPriceKg = previousPrice * GRAMS_PER_KG;
+        const kgDiff = price * GRAMS_PER_KG - previousPriceKg;
+        const kgChange =
+          kgDiff !== 0
+            ? ` (${arrow} ₹${Math.abs(kgDiff).toLocaleString('en-IN')})`
+            : '';
+
+        messageBody.silver.push(
+          `*${metal}:*${NEW_LINE}1 Gram - *${priceGram}*${change}${NEW_LINE}1 KG - *${priceKg}*${kgChange}${NEW_LINE}${NEW_LINE}`
+        );
+      } else if (metal.toLowerCase() === 'platinum') {
+        messageBody.platinum.push(
+          `*${metal}:*${NEW_LINE}1 Gram - *${priceGram}*${change}${NEW_LINE}${NEW_LINE}`
+        );
+      }
+    });
+
+  message += Object.values(messageBody).flat().join('');
 
   // Footer
-  message += `${NEW_LINE}*Disclaimer*: Prices are indicative and may vary slightly across jewellers and locations.`;
+  message += `*Disclaimer*: Prices are indicative and may vary slightly across jewellers and locations.`;
 
   return message;
 };
@@ -81,7 +127,7 @@ const composePredictionMessage = (marketPosition) => {
       message +=
         change.toLocaleString('en-IN') === '0'.toLocaleString('en-IN')
           ? 'No Change'
-          : `*${Math.abs(change)}%* ${change > 0 ? '📈' : '📉'}`;
+          : `${change > 0 ? '⬆️' : '⬇️'} *${Math.abs(change)}%*`;
     });
   } else {
     message += 'No change expected in gold and silver prices.';
@@ -91,6 +137,24 @@ const composePredictionMessage = (marketPosition) => {
   message += `${NEW_LINE}${NEW_LINE}*Disclaimer*: Changes are estimated based on market trends and may inaccurate and change anytime.`;
 
   return message;
+};
+
+const sendMessage = async (message) => {
+  let isSuccess = false;
+
+  if (typeof message === 'string' && message.length > 0) {
+    const response = await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_API_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&parse_mode=${MESSAGE_FORMAT}&text=${message}`
+    );
+
+    if (response.status === 200) {
+      isSuccess = true;
+    }
+  } else {
+    console.error('Message is empty!');
+  }
+
+  return isSuccess;
 };
 
 module.exports = {
