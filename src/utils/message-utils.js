@@ -9,7 +9,10 @@ const MESSAGE_FORMAT = 'Markdown';
 
 const NEW_LINE = '%0A';
 
-const composeNotificationMessage = (metalPrices, comparisonPrices) => {
+const GRAMS_PER_SAVARAN = 8;
+const GRAMS_PER_KG = 1000;
+
+const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
   if (!Array.isArray(metalPrices) || metalPrices.length === 0) {
     return '';
   }
@@ -25,10 +28,18 @@ const composeNotificationMessage = (metalPrices, comparisonPrices) => {
     );
   }
 
-  // Header
-  let message = `*Today's Price/Gram:* ${NEW_LINE}${NEW_LINE}`;
+  const messageBody = {
+    gold: [],
+    silver: [],
+    platinum: [],
+  };
 
-  // Table-like body
+  // Header
+  const sessionText =
+    session === 'AM' ? ' Morning' : session === 'PM' ? ' Evening' : '';
+  let message = `*Today's${sessionText} Price:* ${NEW_LINE}${NEW_LINE}`;
+
+  // Body
   metalPrices
     .map((mp) => ({
       ...mp,
@@ -40,38 +51,57 @@ const composeNotificationMessage = (metalPrices, comparisonPrices) => {
     .forEach((item) => {
       const { metal, purity, price, previousPrice } = item;
 
-      if (metal.toLowerCase() === 'silver') {
-        message += `${NEW_LINE}`;
-      } else if (metal.toLowerCase() === 'platinum') {
-        message += `${NEW_LINE}`;
-      }
+      const diff = price - previousPrice;
+      const arrow = diff > 0 ? '⬆️' : '⬇️';
+      const change =
+        diff !== 0
+          ? ` (${arrow} ₹${Math.abs(diff).toLocaleString('en-IN')})`
+          : '';
+      const priceGram = `₹${price.toLocaleString('en-IN')}`;
 
-      message += `*${metal}* `;
-
+      // Price per gram and savaran (8g)
       if (metal.toLowerCase() === 'gold') {
-        message += `_(${purity}`;
+        const priceSavaran = `₹${(price * GRAMS_PER_SAVARAN).toLocaleString(
+          'en-IN'
+        )}`;
+        const previousPriceSavaran = previousPrice * GRAMS_PER_SAVARAN;
+        const savaranDiff = price * GRAMS_PER_SAVARAN - previousPriceSavaran;
+        const savaranChange =
+          savaranDiff !== 0
+            ? ` (${arrow} ₹${Math.abs(savaranDiff).toLocaleString('en-IN')})`
+            : '';
 
+        let purityText = purity;
         if (purity.toLowerCase() === '22kt') {
-          message += ' - 916';
+          purityText += ' - 916';
         }
 
-        message += ')_ ';
+        messageBody.gold.push(
+          `*${metal} (${purityText}):*${NEW_LINE}1 Gram - *${priceGram}*${change}${NEW_LINE}1 Savaran - *${priceSavaran}*${savaranChange}${NEW_LINE}${NEW_LINE}`
+        );
+      } else if (metal.toLowerCase() === 'silver') {
+        const priceKg = `₹${(price * GRAMS_PER_KG).toLocaleString('en-IN')}`;
+        const previousPriceKg = previousPrice * GRAMS_PER_KG;
+        const kgDiff = price * GRAMS_PER_KG - previousPriceKg;
+        const kgChange =
+          kgDiff !== 0
+            ? ` (${arrow} ₹${Math.abs(kgDiff).toLocaleString('en-IN')})`
+            : '';
+
+        messageBody.silver.push(
+          `*${metal}:*${NEW_LINE}1 Gram - *${priceGram}*${change}${NEW_LINE}1 KG - *${priceKg}*${kgChange}${NEW_LINE}${NEW_LINE}`
+        );
+      } else if (metal.toLowerCase() === 'platinum') {
+        messageBody.platinum.push(
+          `*${metal}:*${NEW_LINE}1 Gram - *${priceGram}*${change}${NEW_LINE}${NEW_LINE}`
+        );
       }
-
-      message += `- *₹${price.toLocaleString('en-IN')}*`;
-
-      const change = price - previousPrice;
-      if (change) {
-        message += ` (₹${change.toLocaleString('en-IN')} ${
-          change > 0 ? '🔼' : '🔽'
-        })`;
-      }
-
-      message += `${NEW_LINE}`;
     });
 
+  message += Object.values(messageBody).flat().join('');
+
   // Footer
-  message += `${NEW_LINE}*Disclaimer*: Prices are indicative and may vary slightly across jewellers and locations.`;
+  message += `*Disclaimer*: Prices are indicative and may vary slightly across jewellers and locations.`;
 
   return message;
 };
@@ -97,7 +127,7 @@ const composePredictionMessage = (marketPosition) => {
       message +=
         change.toLocaleString('en-IN') === '0'.toLocaleString('en-IN')
           ? 'No Change'
-          : `*${Math.abs(change)}%* ${change > 0 ? '🔼' : '🔽'}`;
+          : `${change > 0 ? '⬆️' : '⬇️'} *${Math.abs(change)}%*`;
     });
   } else {
     message += 'No change expected in gold and silver prices.';

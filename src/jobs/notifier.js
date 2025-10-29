@@ -46,6 +46,8 @@ const parsePrimaryApiResponse = (response) => {
             : data.purityName,
         price: data.rate,
       }));
+
+      console.info(`Today's rates: ${JSON.stringify(price)}`);
     } else {
       throw new Error('Metal rate list is empty.');
     }
@@ -109,6 +111,8 @@ const parseSecondaryApiResponse = (response) => {
     } else {
       console.warn('Platinum price is not found.');
     }
+
+    console.info(`Today's rates: ${JSON.stringify(price)}`);
   } else {
     throw new Error(`Invalid response: ${JSON.stringify(response.data)}`);
   }
@@ -176,8 +180,10 @@ const init = async () => {
       );
     }
 
+    const session = getMeridiem(convertToIST(new Date()));
+
     const isSaved = await saveTodayRetailPrice({
-      session: getMeridiem(convertToIST(new Date())),
+      session,
       price,
     });
 
@@ -187,11 +193,12 @@ const init = async () => {
       comparisonPrice =
         previousPrice.retailPrice.length === 1
           ? previousPrice.retailPrice[0].price
-          : previousPrice.retailPrice.find((price) => price.session === 'PM')?.price;
+          : previousPrice.retailPrice.find((price) => price.session === 'PM')
+              ?.price;
     }
 
     const isSent = await sendMessage(
-      composeNotificationMessage(price, comparisonPrice)
+      composeNotificationMessage(session, price, comparisonPrice)
     );
 
     if (isSaved) {
