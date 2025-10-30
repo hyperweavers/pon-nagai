@@ -34,11 +34,11 @@
     "predict": "node ./src/jobs/predictor.js"
   },
   "dependencies": {
-    "axios": "^1.9.0",
-    "axios-cookiejar-support": "^5.0.5",
+    "axios": "^1.13.1",
+    "axios-cookiejar-support": "^6.0.4",
     "axios-retry": "^4.5.0",
-    "dotenv": "^16.5.0",
-    "mongodb": "^6.16.0",
-    "tough-cookie": "^5.1.2"
+    "dotenv": "^17.2.3",
+    "mongodb": "^6.20.0",
+    "tough-cookie": "^6.0.0"
   }
 }
