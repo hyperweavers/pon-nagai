@@ -54,7 +54,7 @@ const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
       const diff = price - previousPrice;
       const arrow = diff > 0 ? '⬆️' : '⬇️';
       const change =
-        diff !== 0
+        previousPrice && diff !== 0
           ? ` (${arrow} ₹${Math.abs(diff).toLocaleString('en-IN')})`
           : '';
       const priceGram = `₹${price.toLocaleString('en-IN')}`;
@@ -67,7 +67,7 @@ const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
         const previousPriceSavaran = previousPrice * GRAMS_PER_SAVARAN;
         const savaranDiff = price * GRAMS_PER_SAVARAN - previousPriceSavaran;
         const savaranChange =
-          savaranDiff !== 0
+          previousPrice && savaranDiff !== 0
             ? ` (${arrow} ₹${Math.abs(savaranDiff).toLocaleString('en-IN')})`
             : '';
 
@@ -84,7 +84,7 @@ const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
         const previousPriceKg = previousPrice * GRAMS_PER_KG;
         const kgDiff = price * GRAMS_PER_KG - previousPriceKg;
         const kgChange =
-          kgDiff !== 0
+          previousPrice && kgDiff !== 0
             ? ` (${arrow} ₹${Math.abs(kgDiff).toLocaleString('en-IN')})`
             : '';
 
