@@ -24,32 +24,69 @@ const GOLD_RETAIL_PRICE_API_BACKUP_URL =
 const parsePrimaryApiResponse = (response) => {
   let price = [];
 
-  if (response.data?.status === 'OK' && response.data?.payload) {
-    let responseJson = '';
+  if (response.data?.data?.getgoldrates?.Data?.length > 0) {
+    const chennaiRates = response.data.data.getgoldrates.Data.find(
+      (rate) => rate.BRANCH_CODE === 'CNN'
+    );
 
-    try {
-      responseJson = JSON.parse(response.data.payload);
-    } catch (error) {
-      throw new Error(
-        `Error parsing price data.\nData: ${
-          response.data.payload
-        }\nError: ${JSON.stringify(error)}`
-      );
-    }
+    if (chennaiRates) {
+      if (chennaiRates.GOLD_22KT_RATE) {
+        price.push({
+          metal: 'Gold',
+          purity: '22KT',
+          price: chennaiRates.GOLD_22KT_RATE,
+        });
+      } else {
+        console.warn('22KT gold price is not found.');
+      }
 
-    if (responseJson && responseJson?.payload?.metalRateList?.length > 0) {
-      price = responseJson.payload.metalRateList.map((data) => ({
-        metal: data.metalTypeName,
-        purity:
-          data.metalTypeName.toLowerCase() === 'platinum'
-            ? '95.00'
-            : data.purityName,
-        price: data.rate,
-      }));
+      if (chennaiRates.GOLD_24KT_RATE) {
+        price.push({
+          metal: 'Gold',
+          purity: '24KT',
+          price: chennaiRates.GOLD_24KT_RATE,
+        });
+      } else {
+        console.warn('24KT gold price is not found.');
+      }
+
+      if (chennaiRates.GOLD_18KT_RATE) {
+        price.push({
+          metal: 'Gold',
+          purity: '18KT',
+          price: chennaiRates.GOLD_18KT_RATE,
+        });
+      } else {
+        console.warn('18KT gold price is not found.');
+      }
+
+      if (chennaiRates.SILVER_RATE) {
+        price.push({
+          metal: 'Silver',
+          purity: '92.50',
+          price: chennaiRates.SILVER_RATE,
+        });
+      } else {
+        console.warn('Silver price is not found.');
+      }
+
+      if (chennaiRates.PLATINUM_RATE) {
+        price.push({
+          metal: 'Platinum',
+          purity: '95.00',
+          price: chennaiRates.PLATINUM_RATE,
+        });
+      } else {
+        console.warn('Platinum price is not found.');
+      }
 
       console.info(`Today's rates: ${JSON.stringify(price)}`);
     } else {
-      throw new Error('Metal rate list is empty.');
+      throw new Error(
+        `Chennai rates are not available: ${JSON.stringify(
+          response.data.data.getgoldrates.Data
+        )}`
+      );
     }
   } else {
     throw new Error(`Invalid response: ${JSON.stringify(response.data)}`);
@@ -62,16 +99,6 @@ const parseSecondaryApiResponse = (response) => {
   let price = [];
 
   if (response.data?.Success === true && response.data?.Data) {
-    if (response.data.Data.R24KT) {
-      price.push({
-        metal: 'Gold',
-        purity: '24KT',
-        price: response.data.Data.R24KT,
-      });
-    } else {
-      console.warn('24KT gold price is not found.');
-    }
-
     if (response.data.Data.R22KT) {
       price.push({
         metal: 'Gold',
@@ -80,6 +107,16 @@ const parseSecondaryApiResponse = (response) => {
       });
     } else {
       console.warn('22KT gold price is not found.');
+    }
+
+    if (response.data.Data.R24KT) {
+      price.push({
+        metal: 'Gold',
+        purity: '24KT',
+        price: response.data.Data.R24KT,
+      });
+    } else {
+      console.warn('24KT gold price is not found.');
     }
 
     if (response.data.Data.R18KT) {
@@ -127,15 +164,7 @@ const getRetailPrice = async () => {
   let price = [];
 
   try {
-    const response = await client.post(
-      GOLD_RETAIL_PRICE_API_URL,
-      {},
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await client.get(GOLD_RETAIL_PRICE_API_URL);
 
     price = parsePrimaryApiResponse(response);
   } catch (error) {
