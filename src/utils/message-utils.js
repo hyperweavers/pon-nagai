@@ -5,12 +5,16 @@ require('dotenv').config();
 const TELEGRAM_API_TOKEN = process.env.TELEGRAM_API_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 
-const MESSAGE_FORMAT = 'Markdown';
-
-const NEW_LINE = '%0A';
+const MESSAGE_FORMAT = 'MarkdownV2';
 
 const GRAMS_PER_SAVARAN = 8;
 const GRAMS_PER_KG = 1000;
+
+const EMOJIS = {
+  gold: '🟡',
+  silver: '⚪',
+  platinum: '🔘',
+};
 
 const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
   if (!Array.isArray(metalPrices) || metalPrices.length === 0) {
@@ -37,7 +41,7 @@ const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
   // Header
   const sessionText =
     session === 'AM' ? ' Morning' : session === 'PM' ? ' Evening' : '';
-  let message = `*Today's${sessionText} Price:* ${NEW_LINE}${NEW_LINE}`;
+  let message = `*Today's${sessionText} Price:* \n\n`;
 
   // Body
   metalPrices
@@ -51,24 +55,25 @@ const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
     .forEach((item) => {
       const { metal, purity, price, previousPrice } = item;
 
+      const emoji = `${EMOJIS[metal.toLowerCase()] || ''} `;
       const diff = price - previousPrice;
       const arrow = diff > 0 ? '⬆️' : '⬇️';
       const change =
         previousPrice && diff !== 0
-          ? ` (${arrow} ₹${Math.abs(diff).toLocaleString('en-IN')})`
+          ? ` (${arrow} ₹ ${Math.abs(diff).toLocaleString('en-IN')})`
           : '';
-      const priceGram = `₹${price.toLocaleString('en-IN')}`;
+      const priceGram = `₹ ${price.toLocaleString('en-IN')}`;
 
       // Price per gram and savaran (8g)
       if (metal.toLowerCase() === 'gold') {
-        const priceSavaran = `₹${(price * GRAMS_PER_SAVARAN).toLocaleString(
+        const priceSavaran = `₹ ${(price * GRAMS_PER_SAVARAN).toLocaleString(
           'en-IN'
         )}`;
         const previousPriceSavaran = previousPrice * GRAMS_PER_SAVARAN;
         const savaranDiff = price * GRAMS_PER_SAVARAN - previousPriceSavaran;
         const savaranChange =
           previousPrice && savaranDiff !== 0
-            ? ` (${arrow} ₹${Math.abs(savaranDiff).toLocaleString('en-IN')})`
+            ? ` (${arrow} ₹ ${Math.abs(savaranDiff).toLocaleString('en-IN')})`
             : '';
 
         let purityText = purity;
@@ -77,23 +82,23 @@ const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
         }
 
         messageBody.gold.push(
-          `*${metal} (${purityText}):*${NEW_LINE}1 Gram - *${priceGram}*${change}${NEW_LINE}1 Savaran - *${priceSavaran}*${savaranChange}${NEW_LINE}${NEW_LINE}`
+          `${emoji}*${metal} (${purityText}):*\n     1 Gram - *${priceGram}*${change}\n     1 Savaran - *${priceSavaran}*${savaranChange}\n\n`
         );
       } else if (metal.toLowerCase() === 'silver') {
-        const priceKg = `₹${(price * GRAMS_PER_KG).toLocaleString('en-IN')}`;
+        const priceKg = `₹ ${(price * GRAMS_PER_KG).toLocaleString('en-IN')}`;
         const previousPriceKg = previousPrice * GRAMS_PER_KG;
         const kgDiff = price * GRAMS_PER_KG - previousPriceKg;
         const kgChange =
           previousPrice && kgDiff !== 0
-            ? ` (${arrow} ₹${Math.abs(kgDiff).toLocaleString('en-IN')})`
+            ? ` (${arrow} ₹ ${Math.abs(kgDiff).toLocaleString('en-IN')})`
             : '';
 
         messageBody.silver.push(
-          `*${metal}:*${NEW_LINE}1 Gram - *${priceGram}*${change}${NEW_LINE}1 KG - *${priceKg}*${kgChange}${NEW_LINE}${NEW_LINE}`
+          `${emoji}*${metal}:*\n     1 Gram - *${priceGram}*${change}\n     1 KG - *${priceKg}*${kgChange}\n\n`
         );
       } else if (metal.toLowerCase() === 'platinum') {
         messageBody.platinum.push(
-          `*${metal}:*${NEW_LINE}1 Gram - *${priceGram}*${change}${NEW_LINE}${NEW_LINE}`
+          `${emoji}*${metal}:*\n     1 Gram - *${priceGram}*${change}\n\n`
         );
       }
     });
@@ -101,7 +106,7 @@ const composeNotificationMessage = (session, metalPrices, comparisonPrices) => {
   message += Object.values(messageBody).flat().join('');
 
   // Footer
-  message += `*Disclaimer*: Prices are indicative and may vary slightly across jewellers and locations.`;
+  message += `>*Disclaimer*: Prices are indicative and may vary slightly across jewellers and locations.`;
 
   return message;
 };
@@ -112,17 +117,19 @@ const composePredictionMessage = (marketPosition) => {
   ).toLocaleDateString();
   const today = new Date().toLocaleDateString();
 
-  let message = `*Tomorrow's Price Expectation:* ${NEW_LINE}${NEW_LINE}`;
+  let message = `*Tomorrow's Price Expectation:* \n\n`;
 
   if (lastTradedDate === today) {
     marketPosition.forEach((item) => {
       const { metal, change, ..._ } = item;
 
+      const emoji = `${EMOJIS[metal.toLowerCase()] || ''} `;
+
       if (metal.toLowerCase() === 'silver') {
-        message += `${NEW_LINE}`;
+        message += `\n\n`;
       }
 
-      message += `*${metal}* - `;
+      message += `${emoji}*${metal}* - `;
 
       message +=
         change.toLocaleString('en-IN') === '0'.toLocaleString('en-IN')
@@ -134,7 +141,7 @@ const composePredictionMessage = (marketPosition) => {
   }
 
   // Footer
-  message += `${NEW_LINE}${NEW_LINE}*Disclaimer*: Changes are estimated based on market trends and may inaccurate and change anytime.`;
+  message += `\n\n>*Disclaimer*: Changes are estimated based on market trends and may inaccurate and change anytime.`;
 
   return message;
 };
@@ -144,7 +151,13 @@ const sendMessage = async (message) => {
 
   if (typeof message === 'string' && message.length > 0) {
     const response = await axios.post(
-      `https://api.telegram.org/bot${TELEGRAM_API_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&parse_mode=${MESSAGE_FORMAT}&text=${message}`
+      `https://api.telegram.org/bot${TELEGRAM_API_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&parse_mode=${MESSAGE_FORMAT}&text=${encodeURIComponent(
+        message
+          .replaceAll('(', '\\(')
+          .replaceAll(')', '\\)')
+          .replaceAll('-', '\\-')
+          .replaceAll('.', '\\.')
+      )}`
     );
 
     if (response.status === 200) {
