@@ -34,7 +34,7 @@ const parsePrimaryApiResponse = (response) => {
         price.push({
           metal: 'Gold',
           purity: '22KT',
-          price: chennaiRates.GOLD_22KT_RATE,
+          price: Number(chennaiRates.GOLD_22KT_RATE),
         });
       } else {
         console.warn('22KT gold price is not found.');
@@ -44,7 +44,7 @@ const parsePrimaryApiResponse = (response) => {
         price.push({
           metal: 'Gold',
           purity: '24KT',
-          price: chennaiRates.GOLD_24KT_RATE,
+          price: Number(chennaiRates.GOLD_24KT_RATE),
         });
       } else {
         console.warn('24KT gold price is not found.');
@@ -54,7 +54,7 @@ const parsePrimaryApiResponse = (response) => {
         price.push({
           metal: 'Gold',
           purity: '18KT',
-          price: chennaiRates.GOLD_18KT_RATE,
+          price: Number(chennaiRates.GOLD_18KT_RATE),
         });
       } else {
         console.warn('18KT gold price is not found.');
@@ -64,7 +64,7 @@ const parsePrimaryApiResponse = (response) => {
         price.push({
           metal: 'Silver',
           purity: '92.50',
-          price: chennaiRates.SILVER_RATE,
+          price: Number(chennaiRates.SILVER_RATE),
         });
       } else {
         console.warn('Silver price is not found.');
@@ -74,7 +74,7 @@ const parsePrimaryApiResponse = (response) => {
         price.push({
           metal: 'Platinum',
           purity: '95.00',
-          price: chennaiRates.PLATINUM_RATE,
+          price: Number(chennaiRates.PLATINUM_RATE),
         });
       } else {
         console.warn('Platinum price is not found.');
@@ -103,7 +103,7 @@ const parseSecondaryApiResponse = (response) => {
       price.push({
         metal: 'Gold',
         purity: '22KT',
-        price: response.data.Data.R22KT,
+        price: Number(response.data.Data.R22KT),
       });
     } else {
       console.warn('22KT gold price is not found.');
@@ -113,7 +113,7 @@ const parseSecondaryApiResponse = (response) => {
       price.push({
         metal: 'Gold',
         purity: '24KT',
-        price: response.data.Data.R24KT,
+        price: Number(response.data.Data.R24KT),
       });
     } else {
       console.warn('24KT gold price is not found.');
@@ -123,7 +123,7 @@ const parseSecondaryApiResponse = (response) => {
       price.push({
         metal: 'Gold',
         purity: '18KT',
-        price: response.data.Data.R18KT,
+        price: Number(response.data.Data.R18KT),
       });
     } else {
       console.warn('18KT gold price is not found.');
@@ -133,7 +133,7 @@ const parseSecondaryApiResponse = (response) => {
       price.push({
         metal: 'Silver',
         purity: '92.50',
-        price: response.data.Data.RS925,
+        price: Number(response.data.Data.RS925),
       });
     } else {
       console.warn('Silver price is not found.');
@@ -143,7 +143,7 @@ const parseSecondaryApiResponse = (response) => {
       price.push({
         metal: 'Platinum',
         purity: '95.00',
-        price: response.data.Data.PT950,
+        price: Number(response.data.Data.PT950),
       });
     } else {
       console.warn('Platinum price is not found.');
