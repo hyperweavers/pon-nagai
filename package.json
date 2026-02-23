@@ -36,14 +36,14 @@
     "update-deps": "npm-check-updates -u && npm install"
   },
   "dependencies": {
-    "axios": "^1.13.1",
-    "axios-cookiejar-support": "^6.0.4",
+    "axios": "^1.13.5",
+    "axios-cookiejar-support": "^6.0.5",
     "axios-retry": "^4.5.0",
-    "dotenv": "^17.2.3",
-    "mongodb": "^6.20.0",
+    "dotenv": "^17.3.1",
+    "mongodb": "^7.1.0",
     "tough-cookie": "^6.0.0"
   },
   "devDependencies": {
-    "npm-check-updates": "^19.1.2"
+    "npm-check-updates": "^19.4.1"
   }
 }
